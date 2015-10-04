@@ -1,0 +1,5 @@
+# ignore python generated bin files
+*.pyc
+
+# ignore apache wsgi files
+*.wsgi
