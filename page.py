@@ -1,5 +1,5 @@
-import os, glob
-from flask import Flask, request, redirect, url_for, send_from_directory
+import os, glob, sys
+from flask import Flask, request, redirect, url_for, send_from_directory, render_template
 from werkzeug import secure_filename
 from PIL import Image
 from caleidoscope import Caleidoscope
@@ -8,7 +8,7 @@ UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
 
 app = Flask(__name__)
-app.debug = True
+#app.debug = True
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 def allowed_file(filename):
@@ -34,9 +34,7 @@ def upload_screen():
             upload_folder = os.path.join(UPLOAD_FOLDER, upload_id)
             
             file.save(os.path.join(upload_folder, filename))
-            return '''
-            <img src=%s />
-            ''' % url_for('open_caleidoscope', upload_id=upload_id)
+            return redirect(url_for('settings_screen', upload_id=upload_id))
 
     return '''
     <!doctype html>
@@ -47,12 +45,32 @@ def upload_screen():
          <input type=submit value=Upload>
     </form>
     '''
+ 
+@app.route('/cldscp/<upload_id>')
+def settings_screen(upload_id):
+    return render_template('settings_form.html', upload_id=upload_id)
     
-@app.route('/uploads/<upload_id>')
-def open_caleidoscope(upload_id):
+@app.route('/image/<upload_id>', methods=['GET', 'POST'])
+def gen_caleidoscope(upload_id):
     upload_folder = os.path.join(UPLOAD_FOLDER, upload_id)
     upload_file = glob.glob(os.path.join(upload_folder, "upload.*"))[0]
     caleidoscope = Caleidoscope(Image.open(upload_file))
+    
+    rot = request.args.get('rot')
+    msf = request.args.get('msf')
+    mstr = request.args.get('mstr')
+    mbl = request.args.get('mbl')
+    bright = request.args.get('bright')
+    if rot:
+        caleidoscope.rotations = int(rot)
+    if msf:
+        caleidoscope.mask_size_factor = float(msf)
+    if mstr:
+        caleidoscope.mask_strength = float(mstr)
+    if mbl:
+        caleidoscope.mask_blur = int(mbl)
+    if bright:
+        caleidoscope.brightness = float(bright)
     
     extension = upload_file.rsplit('.', 1)[1]
     cal_img = caleidoscope.generate()
