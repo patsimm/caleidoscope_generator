@@ -4,6 +4,10 @@
 # ignore apache wsgi files
 *.wsgi
 
+# picture upload directory
+uploads
+uploads/*
+
 # home directory files
 .zshrc
 .gitconfig
