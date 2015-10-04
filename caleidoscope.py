@@ -16,17 +16,19 @@ class Caleidoscope(object):
         # allow 1920 * 1200 pictures at maximum
         w, h = image.size
         if image.size[0] * image.size[1] > 2304000:
-            ratio = min(1920/w, 1920/h)
-            w = w * ratio
-            h = h * ratio
+            ratio = min(1920./w, 1920./h)
+            w = int(w * ratio)
+            h = int(h * ratio)
             image.thumbnail((w, h), Image.ANTIALIAS)
         
         # get a quadratic image
-        size = min(image.size)
+        size = min(w, h)
         left = (w - size) / 2
         upper = (h - size) / 2
         right = (w - size) / 2 + size
         bottom = (h - size) / 2 + size
+        print size
+        print left, upper, right, bottom
         self._im = image.crop((left, upper, right, bottom))
         
     def generate(self, rotations=4, mask_size_factor=0.7, mask_blur=100, 
