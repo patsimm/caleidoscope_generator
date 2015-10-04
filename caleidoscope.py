@@ -12,18 +12,21 @@ class Caleidoscope(object):
 
     def __init__(self, image):
         image = image.convert("RGBA");
-        size = min(image.size)
         
         # allow 1920 * 1200 pictures at maximum
+        w, h = image.size
         if image.size[0] * image.size[1] > 2304000:
-            raise ImageTooBigException("Your image is too big")
+            ratio = min(1920/w, 1920/h)
+            w = w * ratio
+            h = h * ratio
+            image.thumbnail((w, h), Image.ANTIALIAS)
         
         # get a quadratic image
-        old_width, old_height = image.size
-        left = (old_width - size) / 2
-        upper = (old_height - size) / 2
-        right = (old_width - size) / 2 + size
-        bottom = (old_height - size) / 2 + size
+        size = min(image.size)
+        left = (w - size) / 2
+        upper = (h - size) / 2
+        right = (w - size) / 2 + size
+        bottom = (h - size) / 2 + size
         self._im = image.crop((left, upper, right, bottom))
         
     def generate(self, rotations=4, mask_size_factor=0.7, mask_blur=100, 
@@ -68,6 +71,3 @@ class Caleidoscope(object):
         enh = ImageEnhance.Contrast(caleidoscope_image)
         im_contrast = enh.enhance(0.7)
         return ImageChops.darker(im_contrast, caleidoscope_image)
-
-class ImageTooBigException(Exception):
-    pass
