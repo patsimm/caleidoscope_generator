@@ -3,3 +3,10 @@
 
 # ignore apache wsgi files
 *.wsgi
+
+# home directory files
+.zshrc
+.gitconfig
+.zsh_history
+.viminfo
+.zcompdump
