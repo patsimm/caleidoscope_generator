@@ -1,12 +1,9 @@
 #!/usr/bin/python3
 import sys
-from PIL import Image
-from PIL import ImageChops
-from PIL import ImageEnhance
-from PIL import ImageDraw
-from PIL import ImageFilter
+from PIL import Image, ImageChops, ImageEnhance, ImageDraw, ImageFilter
+from StringIO import StringIO
 
-class Caleidoscope(object):
+class Kaleidoscope(object):
 
     _im = None
     rotations = 4
@@ -35,12 +32,19 @@ class Caleidoscope(object):
         self._im = image.crop((left, upper, right, bottom))
         
     def generate(self):
-        caleidoscope_image = self._caleidoscope()
-        enh = ImageEnhance.Brightness(caleidoscope_image)
-        caleidoscope_image = enh.enhance(self.brightness)
-        return self._apply_rad_mask(caleidoscope_image)
+        kaleidoscope_image = self._kaleidoscope()
+        enh = ImageEnhance.Brightness(kaleidoscope_image)
+        kaleidoscope_image = enh.enhance(self.brightness)
+        return self._apply_rad_mask(kaleidoscope_image)
         
-    def _caleidoscope(self):
+    def get_bytes(self, format="PNG"):
+        kaleidoscope_image = self.generate()
+        image_string = StringIO()
+        kaleidoscope_image.save(image_string, format)
+        image_string.seek(0)
+        return image_string
+        
+    def _kaleidoscope(self):
         rotations = self.rotations
         assert rotations <= 20
 
@@ -53,20 +57,20 @@ class Caleidoscope(object):
             im_new = ImageChops.multiply(im_new, im_rot)
         return im_new
         
-    def _apply_rad_mask(self, caleidoscope_image):
+    def _apply_rad_mask(self, kaleidoscope_image):
         msf = self.mask_size_factor
         mbl = self.mask_blur
         mstr = self.mask_strength
         
         # generate mask and fill white
-        filter = Image.new(caleidoscope_image.mode, caleidoscope_image.size)
+        filter = Image.new(kaleidoscope_image.mode, kaleidoscope_image.size)
         draw = ImageDraw.Draw(filter)
-        draw.rectangle([(0, 0), caleidoscope_image.size], 
+        draw.rectangle([(0, 0), kaleidoscope_image.size], 
             fill=(255, 255, 255, 255))
         
         # draw filled circle
         f_size = (1 - msf) / 2
-        size = min(caleidoscope_image.size)
+        size = min(kaleidoscope_image.size)
         low = size * f_size
         high = size - (size * f_size)
         grey_val = int((1 - mstr) * 255)
@@ -75,6 +79,8 @@ class Caleidoscope(object):
         
         # blur, apply and return
         filter = filter.filter(ImageFilter.GaussianBlur(radius=mbl))
-        enh = ImageEnhance.Contrast(caleidoscope_image)
+        enh = ImageEnhance.Contrast(kaleidoscope_image)
         im_contrast = enh.enhance(0.7)
-        return ImageChops.darker(im_contrast, caleidoscope_image)
+        kaleidoscope_image = ImageChops.darker(im_contrast, kaleidoscope_image)
+        multiplied_image = ImageChops.multiply(kaleidoscope_image, filter)
+        return ImageChops.multiply(multiplied_image, kaleidoscope_image)

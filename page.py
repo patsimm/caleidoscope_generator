@@ -1,14 +1,15 @@
-import os, glob, sys
-from flask import Flask, request, redirect, url_for, send_from_directory, render_template
+#!/usr/bin/python
+
+import os, glob, sys, StringIO
+from flask import Flask, request, redirect, url_for, send_file, render_template, abort
 from werkzeug import secure_filename
 from PIL import Image
-from caleidoscope import Caleidoscope
+from kaleidoscope import Kaleidoscope
 
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = set(['png', 'jpg', 'jpeg', 'gif'])
 
 app = Flask(__name__)
-#app.debug = True
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 def allowed_file(filename):
@@ -46,15 +47,19 @@ def upload_screen():
     </form>
     '''
  
-@app.route('/cldscp/<upload_id>')
+@app.route('/kldscp/<upload_id>')
 def settings_screen(upload_id):
+    if not os.path.exists(os.path.join(UPLOAD_FOLDER, upload_id)):
+        abort(404)
     return render_template('settings_form.html', upload_id=upload_id)
     
 @app.route('/image/<upload_id>', methods=['GET', 'POST'])
-def gen_caleidoscope(upload_id):
+def gen_kaleidoscope(upload_id):
     upload_folder = os.path.join(UPLOAD_FOLDER, upload_id)
+    if not os.path.exists(upload_folder):
+        abort(404)
     upload_file = glob.glob(os.path.join(upload_folder, "upload.*"))[0]
-    caleidoscope = Caleidoscope(Image.open(upload_file))
+    kaleidoscope = Kaleidoscope(Image.open(upload_file))
     
     rot = request.args.get('rot')
     msf = request.args.get('msf')
@@ -62,21 +67,20 @@ def gen_caleidoscope(upload_id):
     mbl = request.args.get('mbl')
     bright = request.args.get('bright')
     if rot:
-        caleidoscope.rotations = int(rot)
+        kaleidoscope.rotations = int(rot)
     if msf:
-        caleidoscope.mask_size_factor = float(msf)
+        kaleidoscope.mask_size_factor = float(msf)
     if mstr:
-        caleidoscope.mask_strength = float(mstr)
+        kaleidoscope.mask_strength = float(mstr)
     if mbl:
-        caleidoscope.mask_blur = int(mbl)
+        kaleidoscope.mask_blur = int(mbl)
     if bright:
-        caleidoscope.brightness = float(bright)
+        kaleidoscope.brightness = float(bright)
     
-    extension = upload_file.rsplit('.', 1)[1]
-    cal_img = caleidoscope.generate()
-    cal_img_path = os.path.join(upload_folder, "tmp." + extension)
-    cal_img.save(cal_img_path)
-    return send_from_directory(upload_folder, "tmp." + extension)
+    return send_file(kaleidoscope.get_bytes("PNG"), 
+                     attachment_filename="kldscp.png",
+                     as_attachment=False)
 
 if __name__ == '__main__':
-	app.run()
+    app.debug = True
+    app.run()
